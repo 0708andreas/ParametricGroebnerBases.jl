@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+ParametricGrobnerBases = "c9dd3166-0aa4-4602-bd8e-692061fdb7b7"
