@@ -3,6 +3,17 @@ uuid = "c9dd3166-0aa4-4602-bd8e-692061fdb7b7"
 authors = ["Andreas Bøgh Poulsen"]
 version = "1.0.0-DEV"
 
+[deps]
+Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+DynamicPolynomials = "7c1d4256-1411-5781-91ec-d7bc3513ac07"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+Groebner = "0b43b601-686d-58a3-8a1c-6623616c7cd4"
+MultivariatePolynomials = "102ac46a-7ee4-5c85-9060-abc95bfdeaa3"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TypedPolynomials = "afbbf031-7a57-5f58-a1b9-b774a0fad08d"
+
 [compat]
 julia = "1.10"
 

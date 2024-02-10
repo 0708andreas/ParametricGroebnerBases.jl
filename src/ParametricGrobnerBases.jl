@@ -11,7 +11,7 @@ import Base.show
 
 __show_poly_types = false
 
-@polyvar x y u v
+@polyvar x y z u v # monomial_order=LexOrder
 
 # include("Weispfenning.jl")
 
@@ -65,7 +65,7 @@ function plot_poly(p, params)
 end
 
 
-export x, y, u, v, make_parameters, Color, green, red, white, Condition, color,
+export x, y, z, u, v, make_parameters, Color, green, red, white, Condition, color,
     leading_term, extend_cover, DET, is_reducible, NORMALFORM, SPol, GROBNERSYSTEM
 
 end
