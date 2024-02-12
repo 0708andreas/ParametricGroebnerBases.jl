@@ -11,6 +11,8 @@ function has_only(g::AP, params) where {AP<:AbstractPolynomial}
     return isconstant(make_parameters(g, params))
 end
 
+export has_only
+
 function leading_coefficient(g::AP, params::Tuple) where {AP<:AbstractPolynomial}
     return leading_coefficient(make_parameters(g, params))
 end
@@ -93,32 +95,52 @@ export CGS_alt
 ## Probably need to file a pull request to get that fixed
 #TODO: figure out what to do when S is empty
 #TODO: make this work with AbstractAlgebra.jl polynomials
-function CGBMain(F::Vector{AP}, S::Vector{AP}, params::Tuple) where {AP<:AbstractPolynomial}
-    if 1 ∈ S || (!isempty(S) && 1 ∈ groebner(S, ordering=Lex()))
+function CGBMain(F::Vector{AP}, S::Vector{AP}, params::Tuple, ordering=nothing) where {AP<:AbstractPolynomial}
+    if 1 ∈ S || (!isempty(S) && 1 ∈ groebner(S))
         return empty([(F, F, F)])
     else
-        vars = sort(collect(Set(vcat([variables(p) for p ∈ F]...))), rev=true)
-        @polyvar __x[1:length(vars) + 1] # Bem. __x[1] > __x[2] > ...
-        __params = tuple((v for v ∈ __x[end-length(params)+1:end])...)
-        F_ = [subs(f, (v => x for (v, x) ∈ zip(vars, __x[2:end]))...) for f ∈ F]
-        S_ = [subs(s, (v => x for (v, x) ∈ zip(vars, __x[2:end]))...) for s ∈ S]
+        vars = variables(F)
+        # @polyvar __x[1:length(vars) + 1] # Bem. __x[1] > __x[2] > ...
+        # __params = tuple((v for v ∈ __x[end-length(params)+1:end])...)
+        # F_ = [subs(f, (v => x for (v, x) ∈ zip(vars, __x[2:end]))...) for f ∈ F]
+        # S_ = [subs(s, (v => x for (v, x) ∈ zip(vars, __x[2:end]))...) for s ∈ S]
 
-        σ₁(g) = subs(g, __x[1] => 1, (__xi => var_i for (__xi, var_i) ∈ zip(__x[2:end], vars))...)
+        # σ₁(g) = subs(g, __x[1] => 1, (__xi => var_i for (__xi, var_i) ∈ zip(__x[2:end], vars))...)
 
-        G = groebner([[__x[1]*f for f ∈ F_] ; [(__x[1]-1)*s for s ∈ S_]], ordering=Lex())
-        hs = [leading_coefficient(g, __params) for g ∈ G if
-              divides(__x[1], leading_term(g)) &&
-              !has_only(leading_coefficient(g, (Tuple(__x[2:end]))), __params)]
+        # G = groebner([[__x[1]*f for f ∈ F_] ; [(__x[1]-1)*s for s ∈ S_]], ordering=Lex())
+        # hs = [leading_coefficient(g, __params) for g ∈ G if
+        #       divides(__x[1], leading_term(g)) &&
+        #       !has_only(leading_coefficient(g, (Tuple(__x[2:end]))), __params)]
+        # h = reduce(lcm, hs, init=one(G[1]))
+        # return vcat([(S, [σ₁(h)], σ₁.(G))], [CGBMain(F, [S ; [σ₁(hi)]], params) for hi ∈ hs]...)
+
+        @polyvar t
+
+        σ₁(g) = subs(g, t => 1)
+
+        if ordering == nothing
+            ordering = Lex(vars...)
+        end
+
+        G = groebner([(t .* F) ; (1-t) .* S], ordering=ProductOrdering(Lex(t), ordering))
+        hs = [leading_coefficient(g, params) for g ∈ G if
+              divides(t, leading_term(g)) &&
+              !has_only(leading_coefficient(g, Tuple(vars)), params)]
         h = reduce(lcm, hs, init=one(G[1]))
-        return vcat([(S, [σ₁(h)], σ₁.(G))], [CGBMain(F, [S ; [σ₁(hi)]], params) for hi ∈ hs]...)
+        return vcat([(S, [h], σ₁.(G))], [CGBMain(F, [S ; [hi]], params) for hi ∈ hs]...)
+
+        #
+
     end
 end
 
 export CGBMain
 
-function CGB(F::Vector{AP}, params::Tuple) where {AP<:AbstractPolynomial}
+function CGB(F::Vector{AP}, params::Tuple; ordering=nothing) where {AP<:AbstractPolynomial}
+    # Maybe this should be a product order instead of Lex, to minimize the assumptions on the
+    # original order of the variables
     S = [g for g ∈ groebner(F, ordering=Lex()) if has_only(g, params)]
-    G = CGBMain(F, S, params)
+    G = CGBMain(F, S, params, ordering)
     return collect(Set(vcat(S, [G_ for (_, _, G_) ∈ G]...)))
 end
-
+export CGB
