@@ -1,0 +1,16 @@
+2-element Vector{Polynomial{DynamicPolynomials.Commutative{DynamicPolynomials.CreationOrder}, Graded{LexOrder}, Int64}}:
+ 7 + 18x + 15y² + 54xy + 9xy² + 6y⁴ + 27xy³
+ 6 + 3y²
+
+1-element Vector{Polynomial{DynamicPolynomials.Commutative{DynamicPolynomials.CreationOrder}, Graded{LexOrder}, Int64}}:
+ 1
+
+3-element Vector{Polynomial{DynamicPolynomials.Commutative{DynamicPolynomials.CreationOrder}, Graded{LexOrder}, Polynomial{DynamicPolynomials.Commutative{DynamicPolynomials.CreationOrder}, Graded{LexOrder}, Int64}}}:
+ (6 - b) + (3)y²
+ (-3 + 9b + 3a - 2b²) + (9 - 27b - 9a + 6b²)y + (-171b + 27b²)x
+ (3 - 9b - 3a + 2b²) + (9b)x + (27b)xy
+3-element Vector{Polynomial{DynamicPolynomials.Commutative{DynamicPolynomials.CreationOrder}, Graded{LexOrder}, Int64}}:
+ 6 + 3y²
+ -3 + 9y
+ 3
+true

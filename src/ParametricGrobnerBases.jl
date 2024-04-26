@@ -11,13 +11,48 @@ import Base.show
 
 __show_poly_types = false
 
-@polyvar x y z u v # monomial_order=LexOrder
+# @polyvar x y z u v # monomial_order=LexOrder
 
 # include("Weispfenning.jl")
 
+include("reduction.jl")
+
 include("SSAlgo.jl")
 
-export CGSMain, CGS, CGBMain, CGB
+export CGSMain, CGS, CGBMain, CGB, leading_monomial
+
+# include("stratification.jl")
+
+rand_poly(vars, density=0.5) = rand(1:10) +
+    polynomial(rand(1:10, length(vars)) .* (density .> rand(length(vars))), vars) +
+    polynomial(rand(1:10, length(vars), length(vars)) .* (density .> rand(length(vars), length(vars))), vars)
+
+
+function final_grb(I, params)
+    display(I); println(""); display(groebner(I, ordering=Lex()))
+    println("")
+
+    display(make_parameters.(groebner([f - p for (f, p) in zip(I, params)], ordering=Lex()), Ref(params)))
+    I_ = subs(groebner([f - p for (f, p) in zip(I, params)], ordering=Lex()), (p => 0 for p in params)...)
+    display(I_)
+    display(isgroebner(I_));
+    println("\n\n")
+    return isgroebner(I_);
+end
+
+function sturmfels(vars, params)
+    done = false
+    while !done
+        f = rand_poly(vars)
+
+        done = !final_grb([f*rand_poly(vars) + 1, f], params)
+    end
+end
+
+
+
+export rand_poly, final_grb, sturmfels
+
 
 function make_parameters(p, vars)
     p_ = polynomial(zero(p), polynomial_type(leading_coefficient(p)*prod(vars)))
@@ -36,7 +71,8 @@ function make_parameters(p, vars)
     return p_
 end
 
-unparameterize(t) = coefficient(t) * monomial(t)
+unparameterize(t::AbstractTerm) = coefficient(t) * monomial(t)
+unparameterize(p::AbstractPolynomial) = sum(unparameterize.(terms(p)))
 
 
 function plot_poly(p, params)
