@@ -3,6 +3,7 @@ import MultivariatePolynomials.leading_coefficient,
     MultivariatePolynomials.ordering,
     MultivariatePolynomials.leading_monomial
 import Base.lcm
+# using AbstractAlgebra
 
 function ordering(f::DynamicPolynomials.Polynomial{C, O, T}) where {C, O, T}
     return O
@@ -45,81 +46,90 @@ function lcm(f::AP, g::AP) where {AP<:AbstractPolynomial{Int64}}
     return map_coefficients(c -> Int64(c), f * div(g, gcd(f, g)))
 end
 
-# function CGSMain(F::Vector{AP}, params) where {AP<:AbstractPolynomial}
-#     G = groebner(F)
-#     @assert isgroebner(G)
-#     if 1 ∈ G
-#         return [(one(F[1]), F)] # Skal det være F eller G til sidst?
-#     else
-#         hs = [leading_coefficient(g, params) for g ∈ G
-#               if !has_only(g, params)]
-#         h = reduce(lcm, hs)
-#         # if h == 1
-#         #     return [(h, G)]
-#         # else
-#             return vcat([(h, G)], [CGSMain([G ; [hi]], params) for hi in hs]...)
-#         # end
-#     end
-# end
+import AbstractAlgebra as AA
 
-function CGSMain(F, params)
-    G = groebner(F, ordering=Lex())
-    hs = [leading_coefficient(g, params) for g ∈ G
-              if !has_only(g, params)]
-    h = reduce(lcm, hs, init=one(F[1]))
-    if h == 1
-        return [(h, F)]
+function parametrize(f, vars, params, AX)
+    f_ = zero(AX)
+    for (c, v) in zip(AA.coefficients(f), AA.exponent_vectors(f))
+        f_ = f_ + (c * prod(vars .^ v[1:length(vars)]) * prod(params .^ v[(length(vars)+1):end]))
+    end
+    f_
+end
+
+
+function groebner_wrapper(F::Vector{RE}) where {RE <: AA.MPolyRingElem}
+    if isempty(F) return F end
+
+    AX = AA.parent(F[1])
+    A = AA.base_ring(AX)
+    K = AA.base_ring(A)
+    params = AA.gens(A)
+    params_symb = AA.symbols(A)
+    vars = AA.gens(AX)
+    vars_symb = AA.symbols(AX)
+
+    KXY, news = AA.polynomial_ring(K, [vars_symb ; params_symb])
+    newvars = news[1:length(vars)]
+    newparams = news[length(vars)+1:end]
+
+    vars_order = Dict(:lex => Lex(newvars),
+                      :deglex => DegLex(newvars),
+                      :degrevlex => DegRevLex(newvars))[AA.internal_ordering(AX)]
+    order = ProductOrdering(vars_order, DegRevLex(newparams))
+
+    F_ = [AA.evaluate(AA.map_coefficients(c -> AA.evaluate(c, newparams), f), newvars) for f ∈ F]
+    G_ = groebner(F_, ordering=order)
+
+    G = [parametrize(g, vars, params, AX) for g ∈ G_]
+    G
+end
+
+export groebner_wrapper
+
+function CGS(F::Vector{RE}) where {RE <: AA.MPolyRingElem}
+    AX = AA.parent(F[1])
+    A = AA.base_ring(AX)
+    function CGS_inner(S)
+        if 1 ∈ S || (!isempty(S) && 1 ∈ groebner_wrapper(S))
+            return empty([(F, F, F)])
+        end
+
+        G = groebner_wrapper([F ; S])
+
+        hs = [AA.leading_coefficient(g) for g ∈ G
+                  if !AA.is_constant(g)]
+        h = one(AX)*reduce(lcm, hs, init=one(A))
+
+        G_ = [g for g ∈ G if !AA.is_constant(g)]
+        if isempty(G_)
+            G_ = [zero(F[1])]
+        end
+
+        return vcat([(groebner_wrapper(S), [h], G_)],
+                    [CGS_inner([S ; [one(AX)*hi]]) for hi ∈ hs]...)
+    end
+
+    S = [g for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
+    if isempty(S)
+        return CGS_inner(S)
     else
-        return vcat([(h, G)], [CGSMain([G ; [hi]], params) for hi in hs]...)
+        return [[(empty(F), S, [one(F[1])])] ; CGS_inner(S)]
     end
 end
 
 
-function CGS(F::Vector{AP}, params::Tuple) where {AP<:AbstractPolynomial}
-    G₀ = groebner(F, ordering=Lex())
-    H = CGSMain(G₀, params)
-    GS = empty([(F, F, F)])
-    if any([has_only(g, params) for g ∈ G₀])
-        GS = [(empty(F), filter(g -> has_only(g, params), G₀), [one(F[1])])]
-    end
-    for (h, G) ∈ H
-        if !any(isconstant.(filter(g -> has_only(g, params), G)))
-            push!(GS, (groebner(filter(g -> has_only(g, params), G)), [h], (filter(g -> !has_only(g, params), G))))
-        end
-    end
-    # @assert all(isgroebner.([G for (_, _, G) ∈ GS]))
-    return GS
-end
-
-function CGS_alt(F::Vector{AP}, params::Tuple) where {AP<:AbstractPolynomial}
-    function CGS_inner(F_, E)
-        if any(isconstant.(filter(g -> has_only(g, params), E)))
-            return empty([(E, E, E)])
-        end
-        G = groebner(F_, ordering=Lex())
-        @assert isgroebner(G, ordering=Lex())
-        hs = [leading_coefficient(g, params) for g ∈ G
-                  if !has_only(g, params)]
-        h = reduce(lcm, hs, init=one(F[1]))
-        # if h == 1
-            # return [(E, [h], G)]
-        # else
-            return vcat([(E, [h], G)],
-                        [(CGS_inner([G ; [hi]], groebner([E ; [hi]]))) for hi ∈ hs]...)
-        # end
-    end
-    return CGS_inner(F, empty(F))
-end
-
-function CGS_alt2(F, params)
+function CGS(F::Vector{AP}, params) where {AP<:AbstractPolynomial}
+    vars = [v for v in variables(F) if v ∉ params]
+    pars = collect(params)
+    order = ProductOrdering(DegLex(vars), DegLex(pars))
     function CGS_inner(S)
         if 1 ∈ S || (!isempty(S) && 1 ∈ groebner(S))
             return empty([(F, F, F)])
         end
 
-        G = groebner([F ; S], ordering=Lex())
+        G = groebner([F ; S], ordering=order)
 
-        @assert isgroebner(G, ordering=Lex())
+        # @assert isgroebner(G, ordering=Lex())
         hs = [leading_coefficient(g, params) for g ∈ G
                   if !has_only(g, params)]
         h = reduce(lcm, hs, init=one(F[1]))
@@ -140,7 +150,7 @@ function CGS_alt2(F, params)
         # return vcat([(S_, [h], G)], [CGS_inner([S ; [hi]]) for hi ∈ hs]...)
     end
 
-    S = [g for g ∈ groebner(F, ordering=Lex()) if has_only(g, params)]
+    S = [g for g ∈ groebner(F, ordering=order) if has_only(g, params)]
     if isempty(S)
         return CGS_inner(S)
     else
@@ -149,7 +159,51 @@ function CGS_alt2(F, params)
 end
 
 
-export CGS_alt, CGS_alt2
+export CGS
+
+function CGBMain(F::Vector{RE}, S::Vector{RE}) where {RE<:AA.MPolyRingElem}
+    if 1 ∈ groebner_wrapper(S)
+        return empty([(F, F, F)])
+    end
+
+    AX = AA.parent(F[1])
+    vars = AA.gens(AX)
+    vars_symb = AA.symbols(AX)
+    A = AA.base_ring(AX)
+    params = AA.gens(A)
+    AtX, tvars = A[:t, vars_symb...]
+    t = tvars[1]
+
+    σ₁(g) = AA.evaluate(g, [[one(AX)] ; vars])
+
+    F_ = [AA.evaluate(f, tvars[2:end]) for f ∈ F]
+    S_ = [AA.evaluate(s, tvars[2:end]) for s ∈ S]
+    G = groebner_wrapper([(t.*F_) ; ((1 - t).*S_)])
+    hs = [AA.leading_coefficient(g) for g ∈ G if
+              AA.divides(AA.leading_term(g), t)[1] &&
+                  !AA.is_constant(AA.evaluate(AA.leading_term(g), [t], [1]))]
+    h = one(AtX)*reduce(lcm, hs, init=one(A))
+
+    return vcat([(groebner_wrapper(S), [σ₁(h)], σ₁.(G))],
+                [CGBMain(F, [S ; [σ₁(one(AtX)*hi)]]) for hi in hs]...)
+end
+
+function CGB(F::Vector{RE}) where {RE<:AA.MPolyRingElem}
+    S = [g for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
+    G = CGBMain(F, S)
+    return unique(vcat(S, [G_ for (_, _, G_) ∈ G]...))
+end
+
+function CGS_faithful(F::Vector{RE}) where {RE<:AA.MPolyRingElem}
+    S = [g for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
+    G = CGBMain(F, S)
+    if isempty(S)
+        return G
+    else
+        return [[(empty(S), S, S)] ; G]
+    end
+end
+
 
 #TODO: make this preserve the monomial order of F and S
 ## Figured it out: use @polyvar x y monomial_order=order
@@ -164,13 +218,14 @@ function CGBMain(F::Vector{AP}, S::Vector{AP}, params::Tuple, ordering=nothing) 
         vars = variables(F)
         @polyvar __t __x[1:length(vars)] # Bem. __t > __x[1] > ...
         __params = tuple((v for v ∈ __x[end-length(params)+1:end])...)
+        __vars = __x[1:end-length(params)]
         F_ = [subs(f, (v => x for (v, x) ∈ zip(vars, __x))...) for f ∈ F]
         S_ = [subs(s, (v => x for (v, x) ∈ zip(vars, __x))...) for s ∈ S]
 
         σ₁(g) = subs(g, __t => 1, (__xi => var_i for (__xi, var_i) ∈ zip(__x, vars))...)
 
-        # if ordering == nothing
-            ordering = Lex(__x)
+        # if ordering ==
+        ordering = ProductOrdering(DegLex(__vars), DegLex(collect(__params)))
         # end
 
         G = groebner([(__t.*F_) ; (1-__t).*S_], ordering=ProductOrdering(Lex(__t), ordering))
@@ -222,7 +277,11 @@ end
 function CGS_faithful(F, params; ordering=nothing)
     S = [g for g ∈ groebner(F, ordering=Lex()) if has_only(g, params)]
     G = CGBMain(F, S, params, ordering)
-    return [[(empty(S), S, S)] ; G]
+    if isempty(S)
+        return G
+    else
+        return [[(empty(S), S, S)] ; G]
+    end
 end
 
 export CGB, CGS_faithful
