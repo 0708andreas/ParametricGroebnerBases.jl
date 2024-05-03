@@ -1,3 +1,39 @@
+import AbstractAlgebra as AA
+
+function pseudo_reduce(f::RE, G) where {RE<:AA.MPolyRingElem}
+    AX = AA.parent(f)
+    A = AA.base_ring(AX)
+    r = zero(AX)
+    c = one(A)
+    f_ = f
+
+    while !iszero(f_)
+        a, m = AA.leading_coefficient(f_), AA.leading_monomial(f_)
+        divs = [AA.divides(m, AA.leading_monomial(g)) for g in G]
+        i = findfirst(d -> d[1], divs)
+        if isnothing(i)
+            r = r + a*m
+            f_ = AA.tail(f_)
+        else
+            g = G[i]
+            γ = divs[i][2]
+            c = c*AA.leading_coefficient(g)
+            f_ = AA.leading_coefficient(g)*f_ - a*γ*g
+        end
+    end
+    return c, r
+end
+
+function inter_reduce(G::Vector{RE}) where {RE<:AA.MPolyRingElem}
+    for i in 1:length(G)
+        c, r = pseudo_reduce(G[i], G[[1:(i-1) ; (i+1):end]])
+        G[i] = r
+    end
+    filter(g -> !iszero(g), G)
+end
+
+
+
 function pseudo_reduce(f, G, params)
     f_ = make_parameters(f, params)
     G_ = [make_parameters(g, params) for g in G]
