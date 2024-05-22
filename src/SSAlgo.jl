@@ -90,24 +90,26 @@ function CGS(F::Vector{RE}, red=true) where {RE <: AA.MPolyRingElem}
     AX = AA.parent(F[1])
     A = AA.base_ring(AX)
     function CGS_inner(S)
-        S = groebner_wrapper(S)
+        println("ALRIGHT")
+        if !isempty(S)
+            S = groebner(S)
+        end
         if 1 ∈ S
             return empty([(F, F, F)])
         end
+        G = groebner_wrapper([F ; one(AX).*S])
 
-        G = groebner_wrapper([F ; S])
-        hs = unique([AA.leading_coefficient(g) for g ∈ G
-                         if !iszero(divrem(one(AX)*AA.leading_coefficient(g), S)[2])
+        G__ = [G[i] for i in 1:length(G) if
+                   !any([AA.leading_monomial(g_) != 1 &&
+                         AA.divides(AA.leading_monomial(G[i]), AA.leading_monomial(g_))[1]
+                         for g_ in G[1:i-1]])
+                   && divrem(AA.leading_coefficient(G[i]), S)[2] != 0]
+        hs = unique([AA.leading_coefficient(g) for g ∈ G__
+                         if !iszero(divrem(AA.leading_coefficient(g), S)[2])
                              ])
-
         h = one(AX)*reduce(lcm, hs, init=one(A))
 
-        if iszero(divrem(h, S)[2])
-            return empty([(F, F, F)])
-        end
-
-        # G_ = [g for g ∈ G if !AA.is_constant(g)]
-        G_ = [g for g ∈ G if !iszero(divrem(one(AX)*AA.leading_coefficient(g), S)[2])]
+        G_ = [g for g ∈ G if !iszero(divrem(AA.leading_coefficient(g), S)[2])]
         if red
             G_ = inter_reduce(filter(g -> !iszero(g), G_))
         end
@@ -115,15 +117,15 @@ function CGS(F::Vector{RE}, red=true) where {RE <: AA.MPolyRingElem}
             G_ = [zero(F[1])]
         end
 
-        return vcat([(S, [h], G_)],
-                    [CGS_inner([S ; [one(AX)*hi]]) for hi ∈ hs]...)
+        return vcat([(one(AX).*S, [h], G_)],
+                    [CGS_inner([S ; [hi]]) for hi ∈ hs]...)
     end
 
-    S = [g for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
+    S = [AA.leading_coefficient(g) for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
     if isempty(S)
         return unique(CGS_inner(S))
     else
-        return unique([[(empty(F), S, [one(F[1])])] ; CGS_inner(S)])
+        return unique([[(empty(F), one(AX).*S, [one(F[1])])] ; CGS_inner(S)])
     end
 end
 
@@ -171,12 +173,13 @@ end
 
 export CGS
 
-function CGBMain(F::Vector{RE}, S::Vector{RE}, red = true) where {RE<:AA.MPolyRingElem}
-    S = groebner_wrapper(S)
+function CGBMain(F::Vector{RE1}, S::Vector{RE2}, red = true) where {RE1<:AA.MPolyRingElem, RE2<:AA.MPolyRingElem}
+    if !isempty(S)
+        S = groebner(S)
+    end
     if 1 ∈ S
         return empty([(F, F, F)])
     end
-    println(S)
     AX = AA.parent(F[1])
     vars = AA.gens(AX)
     vars_symb = AA.symbols(AX)
@@ -189,20 +192,20 @@ function CGBMain(F::Vector{RE}, S::Vector{RE}, red = true) where {RE<:AA.MPolyRi
     σ₀(g) = AA.evaluate(g, [[zero(AX)] ; vars])
 
     F_ = [AA.evaluate(f, tvars[2:end]) for f ∈ F]
-    S_ = [AA.evaluate(s, tvars[2:end]) for s ∈ S]
-    G = groebner_wrapper([(t.*F_) ; ((1 - t).*S_)])
+    G = groebner_wrapper([(t.*F_) ; ((1 - t).*S)])
     hs = unique([AA.leading_coefficient(g) for g ∈ G if
               AA.divides(AA.leading_term(g), t)[1] &&
                   #!AA.is_constant(AA.evaluate(AA.leading_term(g), [t], [1]))
-                  !iszero(divrem(one(AX)*AA.leading_coefficient(g), S)[2])
+                  !iszero(divrem(AA.leading_coefficient(g), S)[2])
                      ])
     h = one(AX)*reduce(lcm, hs, init=one(A))
 
-    if iszero(divrem(h, S)[2])
-        return empty([(F, F, F)])
-    end
+    # if iszero(divrem(h, S)[2])
+    #     return empty([(F, F, F)])
+    # end
 
-    G_ = [(g - g_t, g) for (g, g_t) ∈ zip(σ₁.(G), σ₀.(G)) if !iszero(divrem(g, S)[2])]
+    G_ = [(g - g_t, g) for (g, g_t) ∈ zip(σ₁.(G), σ₀.(G))
+              if !iszero(divrem(AA.leading_coefficient(g), S)[2])]
     if red && !isempty(G_)
         G_ = faithful_inter_reduce(G_)
         G_ = [g_f for (g_, g_f) in G_]
@@ -210,12 +213,12 @@ function CGBMain(F::Vector{RE}, S::Vector{RE}, red = true) where {RE<:AA.MPolyRi
         G_ = [g_f for (g, g_f) ∈ G_]
     end
 
-    return vcat([(S, [h], G_)],
-                [CGBMain(F, [S ; [one(AX)*hi]], red) for hi in hs]...)
+    return vcat([(one(AX).*S, [h], G_)],
+                [CGBMain(F, [S ; [hi]], red) for hi in hs]...)
 end
 
 function CGB(F::Vector{RE}, red=true) where {RE<:AA.MPolyRingElem}
-    S = [g for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
+    S = [AA.leading_coefficient(g) for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
     G = CGBMain(F, S, red)
     return unique(vcat(S, [G_ for (_, _, G_) ∈ G]...))
 end
@@ -228,8 +231,12 @@ function CGS_faithful(F::Vector{RE}, red=true) where {RE<:AA.MPolyRingElem}
     # else
     #     return unique([[(empty(S), S, S)] ; G])
     # end
-    G = CGBMain(F, empty(F), red)
-    return unique(G)
+    S = [AA.leading_coefficient(g) for g ∈ groebner_wrapper(F) if AA.is_constant(g)]
+    G = CGBMain(F, S, red)
+    return [[(empty(F), one(AA.parent(F[1])).*S, one(AA.parent(F[1])).*S)] ; unique(G) ]
+    # A = AA.base_ring(AA.parent(F[1]))
+    # G = CGBMain(F, empty([one(A)]), red)
+    # return unique(G)
 end
 
 

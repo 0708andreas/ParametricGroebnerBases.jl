@@ -18,7 +18,7 @@ function pseudo_reduce(f::RE, G) where {RE<:AA.MPolyRingElem}
             g = G[i]
             γ = divs[i][2]
             c = c*AA.leading_coefficient(g)
-            r = r*c
+            r = r*AA.leading_coefficient(g)
             f_ = AA.leading_coefficient(g)*f_ - a*γ*g
         end
     end
