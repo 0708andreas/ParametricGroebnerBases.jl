@@ -1,6 +1,6 @@
 import AbstractAlgebra as AA
 
-function pseudo_reduce(f::RE, G) where {RE<:AA.MPolyRingElem}
+function pseudo_reduce(f::RE, G, red = false) where {RE<:AA.MPolyRingElem}
     AX = AA.parent(f)
     A = AA.base_ring(AX)
     r = zero(AX)
@@ -20,6 +20,17 @@ function pseudo_reduce(f::RE, G) where {RE<:AA.MPolyRingElem}
             c = c*AA.leading_coefficient(g)
             r = r*AA.leading_coefficient(g)
             f_ = AA.leading_coefficient(g)*f_ - a*γ*g
+        end
+    end
+
+    if red
+        H = AA.leading_coefficient.(G)
+        for h ∈ H
+            i = 0
+            while AA.divides(r, (h^(i+1))*one(AX))[1]
+                i = i + 1
+            end
+            r = r / h^i
         end
     end
     return c, r
