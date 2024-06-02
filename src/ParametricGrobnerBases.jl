@@ -4,7 +4,7 @@ using MultivariatePolynomials
 MP = MultivariatePolynomials
 using DynamicPolynomials
 using DataStructures
-using GLMakie
+# using GLMakie
 import Contour
 import Base.div
 import Base.show
