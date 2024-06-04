@@ -1,4 +1,4 @@
-module ParametricGrobnerBases
+module ParametricGroebnerBases
 
 using MultivariatePolynomials
 MP = MultivariatePolynomials
