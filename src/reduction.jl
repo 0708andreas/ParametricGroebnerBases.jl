@@ -1,6 +1,22 @@
 import AbstractAlgebra as AA
 
-function pseudo_reduce(f::RE, G, red = false) where {RE<:AA.MPolyRingElem}
+@doc raw"""
+    pseudo_reduce(f::RE, G, reduced = false) where {RE<:AbstractAlgebra.MPolyRingElem}
+
+Pseudo-reduces ``f`` modulo ``G = \{g_1, g_2, \dots, g_n\}``. Pseudo-reduction writes
+```math
+c f = r + \sum_{i=1}^n f_i g_i
+```
+where ``c`` is a product of leading coefficients of ``G``,
+``\operatorname{lm}(f_i g_i) \leq \operatorname{lm}(f)``,
+and no term of ``r`` is divisible by any leading monomial of ``G``.
+
+The result of `pseudo_reduce(f, G)` is the pair `(c, r)`.
+
+Takes the argument `reduced`. If set to `true`, the function will remove factors in `r`
+ coming from  leading coefficients of ``G``.
+"""
+function pseudo_reduce(f::RE, G, reduced = false) where {RE<:AA.MPolyRingElem}
     AX = AA.parent(f)
     A = AA.base_ring(AX)
     r = zero(AX)
@@ -23,7 +39,7 @@ function pseudo_reduce(f::RE, G, red = false) where {RE<:AA.MPolyRingElem}
         end
     end
 
-    if red
+    if reduced
         H = AA.leading_coefficient.(G)
         for h ∈ H
             i = 0
@@ -35,6 +51,18 @@ function pseudo_reduce(f::RE, G, red = false) where {RE<:AA.MPolyRingElem}
     end
     return c, r
 end
+
+"""
+    pseudo_remainder(f::RE, G, reduced = false) where {RE<:AbstractAlgebra.MPolyRingElem}
+
+Defined as `pseudo_reduce(f, G, reduced)[2]`.
+
+See also [`pseudo_reduce`](@ref)
+"""
+function pseudo_remainder(f::RE, G, reduced = false) where {RE<:AA.MPolyRingElem}
+    return pseudo_reduce(f, G, reduced)[2]
+end
+
 
 function faithful_pseudo_reduce(f::Tuple{RE, RE}, G) where {RE<:AA.MPolyRingElem}
     AX = AA.parent(f[1])

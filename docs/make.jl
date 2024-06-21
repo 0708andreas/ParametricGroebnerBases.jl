@@ -1,23 +1,25 @@
-using ParametricGrobnerBases
+using ParametricGroebnerBases
 using Documenter
 
-DocMeta.setdocmeta!(ParametricGrobnerBases, :DocTestSetup, :(using ParametricGrobnerBases); recursive=true)
+DocMeta.setdocmeta!(ParametricGroebnerBases, :DocTestSetup, :(using ParametricGroebnerBases); recursive=true)
 
 makedocs(;
-    modules=[ParametricGrobnerBases],
+    modules=[ParametricGroebnerBases],
     authors="Andreas Bøgh Poulsen",
-    sitename="ParametricGrobnerBases.jl",
+    sitename="ParametricGroebnerBases.jl",
     format=Documenter.HTML(;
-        canonical="https://0708andreas.github.io/ParametricGrobnerBases.jl",
+        canonical="https://0708andreas.github.io/ParametricGroebnerBases.jl",
         edit_link="main",
         assets=String[],
     ),
     pages=[
         "Home" => "index.md",
+	"Reference" => "reference.md",
+	"Example" => "example.md"
     ],
 )
 
 deploydocs(;
-    repo="github.com/0708andreas/ParametricGrobnerBases.jl",
+    repo="github.com/0708andreas/ParametricGroebnerBases.jl",
     devbranch="main",
 )
