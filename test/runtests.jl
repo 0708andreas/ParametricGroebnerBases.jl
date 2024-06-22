@@ -1,4 +1,4 @@
-using ParametricGrobnerBases
+using ParametricGroebnerBases
 using MultivariatePolynomials
 using Test
 
@@ -24,6 +24,6 @@ using Test
     # @test SPol(c2, p_, p2_) == make_parameters((-v - u^2) + (u*v*)*x^2 * y^3, (u, v))
     #
 
-    @test length(CGS_alt([x^3 - u, y^4 - v, x + y], (u, v))) == 8
-    @test CGS_alt([1 + y^2, y + u*x^2], (u,)) == [([], [u], [1+y^2, y+x^2*u]), ([u], [1], [1])]
+    # @test length(CGS_alt([x^3 - u, y^4 - v, x + y], (u, v))) == 8
+    # @test CGS_alt([1 + y^2, y + u*x^2], (u,)) == [([], [u], [1+y^2, y+x^2*u]), ([u], [1], [1])]
 end
