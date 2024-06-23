@@ -2,7 +2,7 @@ using ParametricGroebnerBases
 using MultivariatePolynomials
 using Test
 
-@testset "ParametricGrobnerBases.jl" begin
+@testset "ParametricGroebnerBases.jl" begin
     # Write your tests here.
     # p = x*y - u + v*x^2*y^3
     # p2 = x*y*u + x*y*v
