@@ -69,6 +69,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using ParametricGrobnerBases
-          DocMeta.setdocmeta!(ParametricGrobnerBases, :DocTestSetup, :(using ParametricGrobnerBases); recursive=true)
-          doctest(ParametricGrobnerBases)
+          using ParametricGroebnerBases
+          DocMeta.setdocmeta!(ParametricGroebnerBases, :DocTestSetup, :(using ParametricGroebnerBases); recursive=true)
+          doctest(ParametricGroebnerBases)
