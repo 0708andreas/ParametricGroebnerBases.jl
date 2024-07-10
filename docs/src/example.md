@@ -28,6 +28,7 @@ julia> I = [α*x - β*x*y, -γ*y + δ*x*y]
 Now, we compute a parametric Gröbner system of this ideal.
 
 ```julia
+julia> GS = CGS(I)
 11-element Vector{Tuple{Vector{AbstractAlgebra.Generic.MPoly{QQMPolyRingElem}}, Vector{AbstractAlgebra.Generic.MPoly{QQMPolyRingElem}}, Vector{AbstractAlgebra.Generic.MPoly{QQMPolyRingElem}}}}:
  ([], [α*β*γ*δ], [β*γ*y^2 - α*γ*y, α*δ*x - β*γ*y])
  ([β*γ], [α*γ*δ], [α*γ*y, α*δ*x])
