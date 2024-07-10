@@ -1,7 +1,8 @@
 import AbstractAlgebra as AA
+import AbstractAlgebra.Generic.MPoly
 
 @doc raw"""
-    pseudo_reduce(f::RE, G, reduced = false) where {RE<:AbstractAlgebra.MPolyRingElem}
+    pseudo_reduce(f::RE, G, reduced = false) where {RE<:MPoly}
 
 Pseudo-reduces ``f`` modulo ``G = \{g_1, g_2, \dots, g_n\}``. Pseudo-reduction writes
 ```math
@@ -16,7 +17,7 @@ The result of `pseudo_reduce(f, G)` is the pair `(c, r)`.
 Takes the argument `reduced`. If set to `true`, the function will remove factors in `r`
  coming from  leading coefficients of ``G``.
 """
-function pseudo_reduce(f::RE, G, reduced = false) where {RE<:AA.MPolyRingElem}
+function pseudo_reduce(f::RE, G, reduced = false) where {RE<:MPoly}
     AX = AA.parent(f)
     A = AA.base_ring(AX)
     r = zero(AX)
@@ -53,18 +54,18 @@ function pseudo_reduce(f::RE, G, reduced = false) where {RE<:AA.MPolyRingElem}
 end
 
 """
-    pseudo_remainder(f::RE, G, reduced = false) where {RE<:AbstractAlgebra.MPolyRingElem}
+    pseudo_remainder(f::RE, G, reduced = false) where {RE<:MPoly}
 
 Defined as `pseudo_reduce(f, G, reduced)[2]`.
 
 See also [`pseudo_reduce`](@ref)
 """
-function pseudo_remainder(f::RE, G, reduced = false) where {RE<:AA.MPolyRingElem}
+function pseudo_remainder(f::RE, G, reduced = false) where {RE<:MPoly}
     return pseudo_reduce(f, G, reduced)[2]
 end
 
 
-function faithful_pseudo_reduce(f::Tuple{RE, RE}, G) where {RE<:AA.MPolyRingElem}
+function faithful_pseudo_reduce(f::Tuple{RE, RE}, G) where {RE<:MPoly}
     AX = AA.parent(f[1])
     A = AA.base_ring(AX)
     r = zero(AX)
@@ -90,7 +91,7 @@ function faithful_pseudo_reduce(f::Tuple{RE, RE}, G) where {RE<:AA.MPolyRingElem
 end
 
 
-function inter_reduce(G::Vector{RE}) where {RE<:AA.MPolyRingElem}
+function inter_reduce(G::Vector{RE}) where {RE<:MPoly}
     G_ = empty(G)
     for g in G
         if !any([AA.divides(AA.leading_monomial(g), AA.leading_monomial(g_))[1] for g_ in G_])
@@ -104,7 +105,7 @@ function inter_reduce(G::Vector{RE}) where {RE<:AA.MPolyRingElem}
     filter(g -> !iszero(g), G_)
 end
 
-function faithful_inter_reduce(G::Vector{Tuple{RE, T}}) where {RE<:AA.MPolyRingElem, T}
+function faithful_inter_reduce(G::Vector{Tuple{RE, T}}) where {RE<:MPoly, T}
     A = AA.base_ring(G[1][1])
     G_ = empty(G)
     for (g, g_f) in G
